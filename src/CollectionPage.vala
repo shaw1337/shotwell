@@ -242,6 +242,17 @@ public abstract class CollectionPage : MediaPage {
     private bool selection_has_photo() {
         return MediaSourceCollection.has_photo((Gee.Collection<MediaSource>) get_view().get_selected_sources());
     }
+
+    private bool selection_has_raw_photo() {
+        if (selection_has_photo()) {
+            for (int i = 0; i < get_view().get_selected_count(); i++) {
+                Photo photo = (Photo)get_view().get_selected_at(i).get_source();
+                if (photo.get_master_file_format() ==  PhotoFileFormat.RAW)
+                    return true;
+            }
+        }
+        return false;
+    }
     
     protected override void init_actions(int selected_count, int count) {
         base.init_actions(selected_count, count);
@@ -261,7 +272,7 @@ public abstract class CollectionPage : MediaPage {
 
         bool one_selected = selected_count == 1;
         bool has_selected = selected_count > 0;
-
+        
         bool primary_is_video = false;
         if (has_selected)
             if (get_view().get_selected_at(0).get_source() is Video)
@@ -277,9 +288,8 @@ public abstract class CollectionPage : MediaPage {
         set_action_sensitive("ExternalEdit", 
             one_selected && !is_string_empty(Config.get_instance().get_external_photo_app()));
         set_action_visible("ExternalEditRAW",
-            one_selected && (!primary_is_video)
-            && ((Photo) get_view().get_selected_at(0).get_source()).get_master_file_format() == 
-                PhotoFileFormat.RAW
+            has_selected && (!primary_is_video)
+            && selection_has_raw_photo()
             && !is_string_empty(Config.get_instance().get_external_raw_app()));
         set_action_sensitive("Revert", (!selection_has_videos) && can_revert_selected());
         set_action_sensitive("Enhance", (!selection_has_videos) && has_selected);
@@ -624,16 +634,20 @@ public abstract class CollectionPage : MediaPage {
     }
     
     private void on_external_edit_raw() {
-        if (get_view().get_selected_count() != 1)
-            return;
-        
-        Photo photo = (Photo) get_view().get_selected_at(0).get_source();
-        if (photo.get_master_file_format() != PhotoFileFormat.RAW)
+        int selected_count = get_view().get_selected_count();
+        if (selected_count < 1)
             return;
 
         try {
             AppWindow.get_instance().set_busy_cursor();
-            photo.open_master_with_external_editor();
+
+            // Queue all selected RAW photos to edit (e.g.  useful with UFRaw)
+            for (int i = 0; i < selected_count; i++) {
+                Photo photo = (Photo) get_view().get_selected_at(i).get_source();
+                if (photo.get_master_file_format() == PhotoFileFormat.RAW)
+                    photo.open_master_with_external_editor();
+            }
+
             AppWindow.get_instance().set_normal_cursor();
         } catch (Error err) {
             AppWindow.get_instance().set_normal_cursor();
