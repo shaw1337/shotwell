@@ -7,7 +7,8 @@
 // For specifying whether a search should be ORed (any) or ANDed (all).
 public enum SearchOperator {
     ANY = 0,
-    ALL;
+    ALL,
+    NONE;
     
     public string to_string() {
         switch (this) {
@@ -16,6 +17,9 @@ public enum SearchOperator {
             
             case SearchOperator.ALL:
                 return "ALL";
+            
+            case SearchOperator.NONE:
+                return "NONE";
             
             default:
                 error("unrecognized search operator enumeration value");
@@ -28,6 +32,9 @@ public enum SearchOperator {
         
         else if (str == "ALL")
             return SearchOperator.ALL;
+        
+        else if (str == "NONE")
+            return SearchOperator.NONE;
         
         else
             error("unrecognized search operator name: %s", str);
@@ -44,7 +51,10 @@ public abstract class SearchCondition {
         TITLE,
         TAG,
         EVENT_NAME,
-        FILE_NAME;
+        FILE_NAME,
+        MEDIA_TYPE,
+        FLAG_STATE,
+        RATING;
         
         public string to_string() {
             switch (this) {
@@ -62,6 +72,15 @@ public abstract class SearchCondition {
                 
                 case SearchType.FILE_NAME:
                     return "FILE_NAME";
+                
+                case SearchType.MEDIA_TYPE:
+                    return "MEDIA_TYPE";
+                
+                case SearchType.FLAG_STATE:
+                    return "FLAG_STATE";
+                
+                case SearchType.RATING:
+                    return "RATING";
                 
                 default:
                     error("unrecognized search type enumeration value");
@@ -83,6 +102,15 @@ public abstract class SearchCondition {
             
             else if (str == "FILE_NAME")
                 return SearchType.FILE_NAME;
+            
+            else if (str == "MEDIA_TYPE")
+                return SearchType.MEDIA_TYPE;
+            
+            else if (str == "FLAG_STATE")
+                return SearchType.FLAG_STATE;
+            
+            else if (str == "RATING")
+                return SearchType.RATING;
             
             else
                 error("unrecognized search type name: %s", str);
@@ -190,6 +218,7 @@ public class SearchConditionText : SearchCondition {
         
         return false;
     }
+    
     // Determines whether the source is included.
     public override bool predicate(MediaSource source) {
         bool ret = false;
@@ -220,6 +249,229 @@ public class SearchConditionText : SearchCondition {
         }
         
         return ret;
+    }
+}
+
+// Condition for media type matching.
+public class SearchConditionMediaType : SearchCondition {
+    public enum Context {
+        IS = 0,
+        IS_NOT;
+        
+        public string to_string() {
+            switch (this) {
+                case Context.IS:
+                    return "IS";
+                
+                case Context.IS_NOT:
+                    return "IS_NOT";
+                
+                default:
+                    error("unrecognized media search context enumeration value");
+            }
+        }
+        
+        public static Context from_string(string str) {
+            if (str == "IS")
+                return Context.IS;
+            
+            else if (str == "IS_NOT")
+                return Context.IS_NOT;
+            
+            else
+                error("unrecognized media search context name: %s", str);
+        }
+    }
+    
+    public enum MediaType {
+        PHOTO_ALL = 0,
+        PHOTO_RAW,
+        VIDEO;
+        
+        public string to_string() {
+            switch (this) {
+                case MediaType.PHOTO_ALL:
+                    return "PHOTO_ALL";
+                
+                case MediaType.PHOTO_RAW:
+                    return "PHOTO_RAW";
+                
+                case MediaType.VIDEO:
+                    return "VIDEO";
+                
+                default:
+                    error("unrecognized media search type enumeration value");
+            }
+        }
+        
+        public static MediaType from_string(string str) {
+            if (str == "PHOTO_ALL")
+                return MediaType.PHOTO_ALL;
+            
+            else if (str == "PHOTO_RAW")
+                return MediaType.PHOTO_RAW;
+            
+            else if (str == "VIDEO")
+                return MediaType.VIDEO;
+            
+            else
+                error("unrecognized media search type name: %s", str);
+        }
+    }
+    
+    // What to search for.
+    public MediaType media_type { get; private set; }
+    
+    // How to match.
+    public Context context { get; private set; }
+    
+    public SearchConditionMediaType(SearchCondition.SearchType search_type, Context context, MediaType media_type) {
+        this.search_type = search_type;
+        this.context = context;
+        this.media_type = media_type;
+    }
+    
+    // Determines whether the source is included.
+    public override bool predicate(MediaSource source) {
+        // For the given type, check it against the MediaSource type
+        // and the given search context.
+        switch (media_type) {
+            case MediaType.PHOTO_ALL:
+                if (source is Photo)
+                    return context == Context.IS;
+                else
+                    return context == Context.IS_NOT;
+                    
+            case MediaType.PHOTO_RAW:
+                if (source is Photo && ((Photo) source).get_master_file_format() == PhotoFileFormat.RAW)
+                    return context == Context.IS;
+                else
+                    return context == Context.IS_NOT;
+                    
+            case MediaType.VIDEO:
+                if (source is VideoSource)
+                    return context == Context.IS;
+                else
+                    return context == Context.IS_NOT;
+                    
+            default:
+                    error("unrecognized media search type enumeration value");
+        }
+    }
+}
+
+// Condition for flag state matching.
+public class SearchConditionFlagged : SearchCondition {
+    public enum State {
+        FLAGGED = 0,
+        UNFLAGGED;
+        
+        public string to_string() {
+            switch (this) {
+                case State.FLAGGED:
+                    return "FLAGGED";
+                
+                case State.UNFLAGGED:
+                    return "UNFLAGGED";
+                
+                default:
+                    error("unrecognized flagged search state enumeration value");
+            }
+        }
+        
+        public static State from_string(string str) {
+            if (str == "FLAGGED")
+                return State.FLAGGED;
+            
+            else if (str == "UNFLAGGED")
+                return State.UNFLAGGED;
+            
+            else
+                error("unrecognized flagged search state name: %s", str);
+        }
+    }
+    
+    // What to match.
+    public State state { get; private set; }
+    
+    public SearchConditionFlagged(SearchCondition.SearchType search_type, State state) {
+        this.search_type = search_type;
+        this.state = state;
+    }
+    
+    // Determines whether the source is included.
+    public override bool predicate(MediaSource source) {
+        if (state == State.FLAGGED) {
+            return ((Flaggable) source).is_flagged();
+        } else if (state == State.UNFLAGGED) {
+            return !((Flaggable) source).is_flagged();
+        } else {
+            error("unrecognized flagged search state");
+        }
+    }
+}
+
+// Condition for rating matching.
+public class SearchConditionRating : SearchCondition {
+    public enum Context {
+        AND_HIGHER = 0,
+        ONLY,
+        AND_LOWER;
+        
+        public string to_string() {
+            switch (this) {
+                case Context.AND_HIGHER:
+                    return "AND_HIGHER";
+                
+                case Context.ONLY:
+                    return "ONLY";
+                
+                case Context.AND_LOWER:
+                    return "AND_LOWER";
+                
+                default:
+                    error("unrecognized rating search context enumeration value");
+            }
+        }
+        
+        public static Context from_string(string str) {
+            if (str == "AND_HIGHER")
+                return Context.AND_HIGHER;
+            
+            else if (str == "ONLY")
+                return Context.ONLY;
+            
+            else if (str == "AND_LOWER")
+                return Context.AND_LOWER;
+            
+            else
+                error("unrecognized rating search context name: %s", str);
+        }
+    }
+    
+    // Rating to check against.
+    public Rating rating { get; private set; }
+    
+    // How to match.
+    public Context context { get; private set; }
+    
+    public SearchConditionRating(SearchCondition.SearchType search_type, Rating rating, Context context) {
+        this.search_type = search_type;
+        this.rating = rating;
+        this.context = context;
+    }
+    
+    // Determines whether the source is included.
+    public override bool predicate(MediaSource source) {
+        Rating source_rating = source.get_rating();
+        if (context == Context.AND_HIGHER)
+            return source_rating >= rating;
+        else if (context == Context.ONLY)
+            return source_rating == rating;
+        else if (context == Context.AND_LOWER)
+            return source_rating <= rating;
+        else
+            error("unknown rating search context");
     }
 }
 
@@ -266,16 +518,18 @@ public class SavedSearch : DataSource {
     
     public bool predicate(MediaSource source) {
         bool ret;
-        if (SearchOperator.ALL == row.operator) 
+        if (SearchOperator.ALL == row.operator || SearchOperator.NONE == row.operator)
             ret = true;
         else
             ret = false; // assumes conditions.size() > 0
         
         foreach (SearchCondition c in row.conditions) {
-            if (SearchOperator.ALL == row.operator) 
+            if (SearchOperator.ALL == row.operator)
                 ret &= c.predicate(source);
-            else
+            else if (SearchOperator.ANY == row.operator)
                 ret |= c.predicate(source);
+            else if (SearchOperator.NONE == row.operator)
+                ret &= !c.predicate(source);
         }
         return ret;
     }
@@ -312,6 +566,14 @@ public class SavedSearch : DataSource {
         
         LibraryWindow.get_app().switch_to_saved_search(this);
         return true;
+    }
+    
+    public Gee.List<SearchCondition> get_conditions() {
+        return row.conditions.read_only_view;
+    }
+    
+    public SearchOperator get_operator() {
+        return row.operator;
     }
 }
 
@@ -395,5 +657,16 @@ public class SavedSearchTable {
     
     public bool exists(string search_name) {
         return search_map.has_key(search_name);
+    }
+    
+    // Generate a unique search name (not thread safe)
+    public string generate_unique_name() {
+        for (int ctr = 1; ctr < int.MAX; ctr++) {
+            string name = "%s %d".printf(Resources.DEFAULT_SAVED_SEARCH_NAME, ctr);
+            
+            if (!exists(name))
+                return name;
+        }
+        return ""; // If all names are used (unlikely!)
     }
 }

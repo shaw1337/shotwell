@@ -9,7 +9,6 @@ Build-Depends: debhelper (>= 7),
  libgee-dev (>= 0.5.0),
  libgexiv2-dev (>= 0.2.0),
  libglib2.0-dev (>= 2.26.0),
- libgnomevfs2-dev (>= 2.24.2),
  libgphoto2-2-dev (>= 2.4.2),
  libgstreamer0.10-dev (>= 0.10.28),
  libgtk2.0-dev (>= 2.18.0),
@@ -35,7 +34,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libgee2 (>= 0.5.0),
  libgexiv2-0 (>= 0.2.0),
  libglib2.0-0 (>= 2.26.0),
- libgnomevfs2-0 (>= 2.24.2),
  libgphoto2-2 (>= 2.4.2),
  libgstreamer0.10-0 (>= 0.10.28),
  libgtk2.0-0 (>= 2.18.0),
@@ -46,8 +44,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libsqlite3-0 (>= 3.5.9),
  libunique-1.0-0 (>= 1.0.0),
  libwebkit-1.0-2 (>= 1.1.5),
- libxml2 (>= 2.6.32),
- totem (>= 2.30.0)
+ libxml2 (>= 2.6.32)
 Description: Digital photo manager
  Shotwell is a digital photo manager designed for the GNOME desktop 
  environment. It allows you to import photos from disk or camera, organize 

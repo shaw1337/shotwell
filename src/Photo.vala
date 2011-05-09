@@ -154,7 +154,7 @@ public enum Rating {
 // particular photo without modifying the backing image file.  The interface allows for
 // transformations to be stored persistently elsewhere or in memory until they're commited en
 // masse to an image file.
-public abstract class Photo : PhotoSource {
+public abstract class Photo : PhotoSource, Dateable {
     // Need to use "thumb" rather than "photo" for historical reasons -- this name is used
     // directly to load thumbnails from disk by already-existing filenames
     public const string TYPENAME = "thumb";
@@ -191,7 +191,7 @@ public abstract class Photo : PhotoSource {
     // is scaled properly.  We have to allow for some wobble here because of rounding errors and
     // precision limitations of various subsystems.  Pixel-accuracy would be best, but barring that,
     // need to just make sure the pixbuf is in the ballpark.
-    private const int SCALING_FUDGE = 8;
+    private const int SCALING_FUDGE = 32;
     
     public enum Exception {
         NONE            = 0,
@@ -3894,7 +3894,7 @@ public class LibraryPhoto : Photo, Flaggable, Monitorable {
     public override Gdk.Pixbuf get_preview_pixbuf(Scaling scaling) throws Error {
         Gdk.Pixbuf pixbuf = get_thumbnail(ThumbnailCache.Size.BIG);
         
-        return scaling.perform_on_pixbuf(pixbuf, Gdk.InterpType.NEAREST, true);
+        return scaling.perform_on_pixbuf(pixbuf, Gdk.InterpType.BILINEAR, true);
     }
     
     public override void rotate(Rotation rotation) {

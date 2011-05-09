@@ -212,11 +212,13 @@ along with Shotwell; if not, write to the Free Software Foundation, Inc.,
     public const string DECREASE_RATING_TOOLTIP = _("Decrease the rating of your photo");
 
     public const string RATE_UNRATED_MENU = _("_Unrated");
+    public const string RATE_UNRATED_COMBO_BOX = _("Unrated");
     public const string RATE_UNRATED_LABEL = _("Rate Unrated");
     public const string RATE_UNRATED_PROGRESS = _("Setting as unrated");
     public const string RATE_UNRATED_TOOLTIP = _("Remove any ratings");
     
     public const string RATE_REJECTED_MENU = _("_Rejected");
+    public const string RATE_REJECTED_COMBO_BOX = _("Rejected");
     public const string RATE_REJECTED_LABEL = _("Rate Rejected");
     public const string RATE_REJECTED_PROGRESS = _("Setting as rejected");
     public const string RATE_REJECTED_TOOLTIP = _("Set rating to rejected");
@@ -314,6 +316,8 @@ along with Shotwell; if not, write to the Free Software Foundation, Inc.,
             count).printf(name, count);
     }
     
+    public const string DEFAULT_SAVED_SEARCH_NAME = _("Saved Search");
+    
     public string delete_search_menu(string name) {
         return _("_Delete Search \"%s\"").printf(name);
     }
@@ -377,6 +381,14 @@ along with Shotwell; if not, write to the Free Software Foundation, Inc.,
     }
     
     public const string DELETE_SAVED_SEARCH_DIALOG_TITLE = _("Delete Search");
+    
+    public string edit_search_menu(string name) {
+        return _("_Edit Search \"%s\"...").printf(name);
+    }
+    
+    public string edit_search_tooltip(string name) {
+        return _("Edit the search \"%s\"").printf(name);
+    }
     
     public string rename_search_menu(string name) {
         return _("Re_name Search \"%s\"...").printf(name);
@@ -453,7 +465,28 @@ along with Shotwell; if not, write to the Free Software Foundation, Inc.,
                 return RATE_UNRATED_TOOLTIP;
         }
     }
-
+    
+    private unowned string rating_combo_box(Rating rating) {
+        switch (rating) {
+            case Rating.REJECTED:
+                return RATE_REJECTED_COMBO_BOX;
+            case Rating.UNRATED:
+                return RATE_UNRATED_COMBO_BOX;
+            case Rating.ONE:
+                return RATE_ONE_MENU;
+            case Rating.TWO:
+                return RATE_TWO_MENU;
+            case Rating.THREE:
+                return RATE_THREE_MENU;
+            case Rating.FOUR:
+                return RATE_FOUR_MENU;
+            case Rating.FIVE:
+                return RATE_FIVE_MENU;
+            default:
+                return RATE_UNRATED_MENU;
+        }
+    }
+    
     private string get_rating_filter_tooltip(RatingFilter filter) {
         switch (filter) {
             case RatingFilter.REJECTED_OR_HIGHER:

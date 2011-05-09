@@ -489,7 +489,7 @@ public class CropTool : EditingTool {
     private const double CROP_INIT_X_PCT = 0.15;
     private const double CROP_INIT_Y_PCT = 0.15;
 
-    private const int CROP_MIN_SIZE = 50;
+    private const int CROP_MIN_SIZE = 8;
 
     private const float CROP_EXTERIOR_SATURATION = 0.00f;
     private const int CROP_EXTERIOR_RED_SHIFT = -32;
@@ -503,8 +503,8 @@ public class CropTool : EditingTool {
     private const float CUSTOM_ASPECT_RATIO = -4.0f;
     private const float COMPUTE_FROM_BASIS = -5.0f;
     private const float SEPARATOR = -6.0f;
-    private const float MIN_ASPECT_RATIO = 1.0f / 4.0f;
-    private const float MAX_ASPECT_RATIO = 4.0f;
+    private const float MIN_ASPECT_RATIO = 1.0f / 64.0f;
+    private const float MAX_ASPECT_RATIO = 64.0f;
     
     private struct ConstraintDescription {
         public string name;
@@ -1060,6 +1060,7 @@ public class CropTool : EditingTool {
     }
     
     private void bind_window_handlers() {
+        crop_tool_window.key_press_event.connect(on_keypress);
         crop_tool_window.ok_button.clicked.connect(on_crop_ok);
         crop_tool_window.cancel_button.clicked.connect(notify_cancel);
         crop_tool_window.constraint_combo.changed.connect(constraint_changed);
@@ -1073,6 +1074,7 @@ public class CropTool : EditingTool {
     }
     
     private void unbind_window_handlers() {
+        crop_tool_window.key_press_event.disconnect(on_keypress);
         crop_tool_window.ok_button.clicked.disconnect(on_crop_ok);
         crop_tool_window.cancel_button.clicked.disconnect(notify_cancel);
         crop_tool_window.constraint_combo.changed.disconnect(constraint_changed);
@@ -1082,6 +1084,15 @@ public class CropTool : EditingTool {
         crop_tool_window.custom_width_entry.focus_out_event.disconnect(on_width_entry_focus_out);
         crop_tool_window.custom_height_entry.focus_out_event.disconnect(on_height_entry_focus_out);
         crop_tool_window.custom_width_entry.insert_text.disconnect(on_width_insert_text);
+    }
+
+    public override bool on_keypress(Gdk.EventKey event) {
+        if (Gdk.keyval_name(event.keyval) == "KP_Enter") {
+            on_crop_ok();
+            return true;
+        }
+
+        return base.on_keypress(event);
     }
     
     private void on_pivot_button_clicked() {

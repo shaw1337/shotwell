@@ -792,7 +792,7 @@ public abstract class EditingHostPage : SinglePhotoPage {
         // it's apparent which one was being viewed here
         if (parent_view != null) {
             parent_view.unselect_all();
-            DataView? view_in_parent = parent_view.get_view_for_source(photo);
+            DataView? view_in_parent = parent_view.get_view_for_source_filtered(photo);
             if (null != view_in_parent)
                 parent_view.select_marked(parent_view.mark(view_in_parent));
         }
@@ -2620,11 +2620,16 @@ public class LibraryPhotoPage : EditingHostPage {
         }
     }
     
-    public void display_for_collection(CollectionPage return_page, Photo photo) {
+    // Displays a photo from a specific CollectionPage.  When the user exits this view,
+    // they will be sent back to the return_page. The optional view paramters is for using
+    // a ViewCollection other than the one inside return_page; this is necessary if the 
+    // view and return_page have different filters.
+    public void display_for_collection(CollectionPage return_page, Photo photo, 
+        ViewCollection? view = null) {
         this.return_page = return_page;
         return_page.destroy.connect(on_page_destroyed);
         
-        display_copy_of(return_page.get_view(), photo);
+        display_copy_of(view != null ? view : return_page.get_view(), photo);
     }
     
     public void on_page_destroyed() {

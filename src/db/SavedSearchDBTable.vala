@@ -63,19 +63,89 @@ public class SavedSearchDBTable : DatabaseTable {
             + ")", -1, out stmt);
         assert(res == Sqlite.OK);
         
-        // Index on search text table.
         res = stmt.step();
         if (res != Sqlite.DONE)
             fatal("create SavedSearchDBTable_Text", res);
         
-        res = db.prepare_v2("CREATE INDEX IF NOT EXISTS "
-            + "SavedSearchDBTable_Text_Index "
-            + "ON SavedSearchDBTable_Text(search_id)", -1, out stmt);
+        // Create search media type table.
+        res = db.prepare_v2("CREATE TABLE IF NOT EXISTS "
+            + "SavedSearchDBTable_MediaType "
+            + "("
+            + "id INTEGER PRIMARY KEY, "
+            + "search_id INTEGER NOT NULL, "
+            + "search_type TEXT NOT NULL, "
+            + "context TEXT NOT NULL, "
+            + "type TEXT NOT_NULL"
+            + ")", -1, out stmt);
         assert(res == Sqlite.OK);
         
         res = stmt.step();
         if (res != Sqlite.DONE)
+            fatal("create SavedSearchDBTable_MediaType", res);
+        
+        // Create flagged search table.
+        res = db.prepare_v2("CREATE TABLE IF NOT EXISTS "
+            + "SavedSearchDBTable_Flagged "
+            + "("
+            + "id INTEGER PRIMARY KEY, "
+            + "search_id INTEGER NOT NULL, "
+            + "search_type TEXT NOT NULL, "
+            + "flag_state TEXT NOT NULL"
+            + ")", -1, out stmt);
+        assert(res == Sqlite.OK);
+        
+        res = stmt.step();
+        if (res != Sqlite.DONE)
+            fatal("create SavedSearchDBTable_Flagged", res);
+        
+        // Create rating search table.
+        res = db.prepare_v2("CREATE TABLE IF NOT EXISTS "
+            + "SavedSearchDBTable_Rating "
+            + "("
+            + "id INTEGER PRIMARY KEY, "
+            + "search_id INTEGER NOT NULL, "
+            + "search_type TEXT NOT NULL, "
+            + "rating INTEGER NOT_NULL, "
+            + "context TEXT NOT NULL"
+            + ")", -1, out stmt);
+        assert(res == Sqlite.OK);
+        
+        res = stmt.step();
+        if (res != Sqlite.DONE)
+            fatal("create SavedSearchDBTable_Rating", res);
+        
+        // Create indexes.
+        res = db.prepare_v2("CREATE INDEX IF NOT EXISTS "
+            + "SavedSearchDBTable_Text_Index "
+            + "ON SavedSearchDBTable_Text(search_id)", -1, out stmt);
+        assert(res == Sqlite.OK);
+        res = stmt.step();
+        if (res != Sqlite.DONE)
             fatal("create SavedSearchDBTable_Text_Index", res);
+        
+        res = db.prepare_v2("CREATE INDEX IF NOT EXISTS "
+            + "SavedSearchDBTable_MediaType_Index "
+            + "ON SavedSearchDBTable_MediaType(search_id)", -1, out stmt);
+        assert(res == Sqlite.OK);
+        res = stmt.step();
+        if (res != Sqlite.DONE)
+            fatal("create SavedSearchDBTable_MediaType_Index", res);
+        
+        res = db.prepare_v2("CREATE INDEX IF NOT EXISTS "
+            + "SavedSearchDBTable_Flagged_Index "
+            + "ON SavedSearchDBTable_Flagged(search_id)", -1, out stmt);
+        assert(res == Sqlite.OK);
+        res = stmt.step();
+        if (res != Sqlite.DONE)
+            fatal("create SavedSearchDBTable_Flagged_Index", res);
+        
+        res = db.prepare_v2("CREATE INDEX IF NOT EXISTS "
+            + "SavedSearchDBTable_Rating_Index "
+            + "ON SavedSearchDBTable_Rating(search_id)", -1, out stmt);
+        assert(res == Sqlite.OK);
+        res = stmt.step();
+        if (res != Sqlite.DONE)
+            fatal("create SavedSearchDBTable_Rating_Index", res);
     }
     
     public static SavedSearchDBTable get_instance() {
@@ -137,16 +207,84 @@ public class SavedSearchDBTable : DatabaseTable {
             
             res = stmt.step();
             if (res != Sqlite.DONE)
-                throw_error("SavedSearchDBTable.add", res);
+                throw_error("SavedSearchDBTable_Text.add", res);
+        } else if (condition is SearchConditionMediaType) {
+            SearchConditionMediaType media_type = condition as SearchConditionMediaType;
+            Sqlite.Statement stmt;
+            int res = db.prepare_v2("INSERT INTO SavedSearchDBTable_MediaType (search_id, search_type, context, "
+                + "type) VALUES (?, ?, ?, ?)", -1,
+                out stmt);
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_int64(1, id.id);
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_text(2, media_type.search_type.to_string());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_text(3, media_type.context.to_string());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_text(4, media_type.media_type.to_string());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.step();
+            if (res != Sqlite.DONE)
+                throw_error("SavedSearchDBTable_MediaType.add", res);
+        } else if (condition is SearchConditionFlagged) {
+            SearchConditionFlagged flag_state = condition as SearchConditionFlagged;
+            Sqlite.Statement stmt;
+            int res = db.prepare_v2("INSERT INTO SavedSearchDBTable_Flagged (search_id, search_type, "
+                + "flag_state) VALUES (?, ?, ?)", -1,
+                out stmt);
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_int64(1, id.id);
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_text(2, flag_state.search_type.to_string());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_text(3, flag_state.state.to_string());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.step();
+            if (res != Sqlite.DONE)
+                throw_error("SavedSearchDBTable_Flagged.add", res);
+        } else if (condition is SearchConditionRating) {
+            SearchConditionRating rating = condition as SearchConditionRating;
+            Sqlite.Statement stmt;
+            int res = db.prepare_v2("INSERT INTO SavedSearchDBTable_Rating (search_id, search_type, rating, "
+                + "context) VALUES (?, ?, ?, ?)", -1,
+                out stmt);
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_int64(1, id.id);
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_text(2, rating.search_type.to_string());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_int(3, rating.rating.serialize());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.bind_text(4, rating.context.to_string());
+            assert(res == Sqlite.OK);
+            
+            res = stmt.step();
+            if (res != Sqlite.DONE)
+                throw_error("SavedSearchDBTable_Rating.add", res);
         } else {
-            // Should never get here.
-            assert(false);
+            assert_not_reached();
         }
     }
     
     // Removes the conditions of a search.  Used on delete.
     private void remove_conditions_for_search_id(SavedSearchID search_id) throws DatabaseError {
         remove_conditions_for_table("SavedSearchDBTable_Text", search_id);
+        remove_conditions_for_table("SavedSearchDBTable_MediaType", search_id);
+        remove_conditions_for_table("SavedSearchDBTable_Flagged", search_id);
+        remove_conditions_for_table("SavedSearchDBTable_Rating", search_id);
     }
     
     private void remove_conditions_for_table(string table_name, SavedSearchID search_id)
@@ -167,10 +305,11 @@ public class SavedSearchDBTable : DatabaseTable {
     private Gee.List<SearchCondition> get_conditions_for_id(SavedSearchID search_id)
         throws DatabaseError {
         Gee.List<SearchCondition> list = new Gee.ArrayList<SearchCondition>();
+        Sqlite.Statement stmt;
+        int res;
         
         // Get all text conditions.
-        Sqlite.Statement stmt;
-        int res = db.prepare_v2("SELECT search_type, context, text FROM SavedSearchDBTable_Text "
+        res = db.prepare_v2("SELECT search_type, context, text FROM SavedSearchDBTable_Text "
             + "WHERE search_id=?",
             -1, out stmt);
         assert(res == Sqlite.OK);
@@ -189,6 +328,77 @@ public class SavedSearchDBTable : DatabaseTable {
                 SearchCondition.SearchType.from_string(stmt.column_text(0)), 
                 stmt.column_text(2), 
                 SearchConditionText.Context.from_string(stmt.column_text(1)));
+            
+            list.add(condition);
+        }
+        
+        // Get all media type conditions.
+        res = db.prepare_v2("SELECT search_type, context, type FROM SavedSearchDBTable_MediaType "
+            + "WHERE search_id=?",
+            -1, out stmt);
+        assert(res == Sqlite.OK);
+        
+        res = stmt.bind_int64(1, search_id.id);
+        assert(res == Sqlite.OK);
+        
+        for (;;) {
+            res = stmt.step();
+            if (res == Sqlite.DONE)
+                break;
+            else if (res != Sqlite.ROW)
+                throw_error("SavedSearchDBTable_MediaType.get_all_rows", res);
+            
+            SearchConditionMediaType condition = new SearchConditionMediaType(
+                SearchCondition.SearchType.from_string(stmt.column_text(0)), 
+                SearchConditionMediaType.Context.from_string(stmt.column_text(1)),
+                SearchConditionMediaType.MediaType.from_string(stmt.column_text(2)));
+            
+            list.add(condition);
+        }
+        
+        // Get all flagged state conditions.
+        res = db.prepare_v2("SELECT search_type, flag_state FROM SavedSearchDBTable_Flagged "
+            + "WHERE search_id=?",
+            -1, out stmt);
+        assert(res == Sqlite.OK);
+        
+        res = stmt.bind_int64(1, search_id.id);
+        assert(res == Sqlite.OK);
+        
+        for (;;) {
+            res = stmt.step();
+            if (res == Sqlite.DONE)
+                break;
+            else if (res != Sqlite.ROW)
+                throw_error("SavedSearchDBTable_Flagged.get_all_rows", res);
+            
+            SearchConditionFlagged condition = new SearchConditionFlagged(
+                SearchCondition.SearchType.from_string(stmt.column_text(0)), 
+                SearchConditionFlagged.State.from_string(stmt.column_text(1)));
+            
+            list.add(condition);
+        }
+        
+        // Get all rating conditions.
+        res = db.prepare_v2("SELECT search_type, rating, context FROM SavedSearchDBTable_Rating "
+            + "WHERE search_id=?",
+            -1, out stmt);
+        assert(res == Sqlite.OK);
+        
+        res = stmt.bind_int64(1, search_id.id);
+        assert(res == Sqlite.OK);
+        
+        for (;;) {
+            res = stmt.step();
+            if (res == Sqlite.DONE)
+                break;
+            else if (res != Sqlite.ROW)
+                throw_error("SavedSearchDBTable_Rating.get_all_rows", res);
+            
+            SearchConditionRating condition = new SearchConditionRating(
+                SearchCondition.SearchType.from_string(stmt.column_text(0)), 
+                Rating.unserialize(stmt.column_int(1)),
+                SearchConditionRating.Context.from_string(stmt.column_text(2)));
             
             list.add(condition);
         }
