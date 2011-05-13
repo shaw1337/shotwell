@@ -11,6 +11,10 @@ MIN_VALAC_VERSION := 0.11.7
 INSTALL_PROGRAM := install
 INSTALL_DATA := install -m 644
 
+# needed for testing
+VALADATE_PKG_NAME := valadate-1.0
+MIN_VALADATE_VERSION := 0.1.1
+
 # defaults that may be overridden by configure.mk
 PREFIX=/usr/local
 SCHEMA_FILE_DIR=/etc/gconf/schemas
@@ -47,6 +51,7 @@ UNUNITIZED_SRC_FILES = \
 	PhotoPage.vala \
 	Page.vala \
 	SortedList.vala \
+	SortedListTests.vala \
 	Dimensions.vala \
 	Box.vala \
 	Photo.vala \
@@ -299,6 +304,10 @@ EXT_PKG_VERSIONS = \
 	unique-1.0 >= 1.0.0 \
 	webkit-1.0 >= 1.1.5
 
+ifdef ENABLE_TESTS
+EXT_PKGS += valadate-1.0
+EXT_PKG_VERSIONS += valadate-1.0 >= 0.1.1
+endif
 DIRECT_LIBS_VERSIONS =
 
 LIBRAW_VERSION = \
@@ -374,6 +383,11 @@ PACKAGE_ORIG_GZ = $(PROGRAM)_`parsechangelog | grep Version | sed 's/.*: //'`.or
 
 VALAFLAGS := $(VALAFLAGS) --vapidir=plugins/
 
+ifdef ENABLE_TESTS
+VALAFLAGS := $(VALAFLAGS) --vapi=libshotwell.vapi --define=ENABLE_TESTS 
+DEFINES := $(DEFINES) ENABLE_TESTS=true
+endif
+
 VALA_CFLAGS := `pkg-config --cflags $(EXT_PKGS) $(DIRECT_LIBS) gthread-2.0` \
 	$(foreach hdir,$(HEADER_DIRS),-I$(hdir)) \
 	$(foreach def,$(DEFINES),-D$(def))
@@ -411,11 +425,27 @@ define check_valac_version
 		@ ./chkver max $(VALAC_VERSION) $(MAX_VALAC_VERSION) || ( echo 'Shotwell cannot be built by Vala compiler $(MAX_VALAC_VERSION) or greater.  You are running' $(VALAC_VERSION) '\b.'; exit 1 ),)
 endef
 
+define check_valadate_version
+	@ pkg-config $(VALADATE_PKG_NAME) --atleast-version=$(MIN_VALADATE_VERSION) || ( echo 'Shotwell testing requires Valadate $(MIN_VALADATE_VERSION) or greater.  You are running' `pkg-config --modversion $(VALADATE_PKG_NAME)` '\b.'; exit 1 )
+endef
+
 ifdef ENABLE_BUILD_FOR_GLADE
 all: $(PLUGINS_DIR) lib$(PROGRAM).so $(PROGRAM) $(PC_FILE)
 else
+ifdef ENABLE_TESTS
+all: $(PLUGINS_DIR) $(PROGRAM) $(PC_FILE)
+
+valadate_check: 
+	$(call check_valadate_version)
+
+check: valadate_check $(PLUGINS_DIR) lib$(PROGRAM).so $(PROGRAM) $(PC_FILE)
+	valadate -L shotwell --dir=vapi --dir=. --verbose-search -f src/libshotwell.vapi
+
+else
 all: $(PLUGINS_DIR) $(PROGRAM) $(PC_FILE)
 endif
+endif
+
 
 include src/plugins/mk/interfaces.mk
 

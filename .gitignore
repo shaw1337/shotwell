@@ -13,5 +13,4 @@ shotwell
 *.stamp
 *.pc
 *.langstamp
-shotwell-viewer.desktop
-shotwell.desktop
+/src/libshotwell.vapi
